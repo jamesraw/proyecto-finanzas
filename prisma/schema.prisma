@@ -1,0 +1,148 @@
+// Prisma schema for Thimphu - personal finance tracker for a couple.
+// Base display currency is ARS. See ExchangeRate for manual conversion rates.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Currency {
+  ARS
+  USD
+  BRL
+}
+
+enum TransactionScope {
+  personal
+  shared
+}
+
+enum SplitType {
+  equal
+  custom
+  byIncome
+}
+
+enum CategoryKind {
+  expense
+  income
+}
+
+enum RecurringKind {
+  expense
+  income
+}
+
+model Person {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String // tailwind-friendly hex, used for UI tagging
+  createdAt DateTime @default(now())
+
+  accounts      Account[]
+  transactions  Transaction[]
+  incomes       Income[]
+  recurring     RecurringTransaction[]
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  icon      String // emoji
+  color     String
+  kind      CategoryKind
+  createdAt DateTime     @default(now())
+
+  transactions Transaction[]
+  recurring    RecurringTransaction[]
+
+  @@unique([name, kind])
+}
+
+model Account {
+  id        String   @id @default(cuid())
+  name      String // e.g. "Efectivo Chino", "Caja compartida casa"
+  personId  String? // null = shared/joint account
+  person    Person?  @relation(fields: [personId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model ExchangeRate {
+  id         String   @id @default(cuid())
+  currency   Currency @unique // rate FROM this currency TO ARS
+  rateToARS  Float
+  updatedAt  DateTime @updatedAt
+}
+
+model Transaction {
+  id         String            @id @default(cuid())
+  amount     Float
+  currency   Currency          @default(ARS)
+  date       DateTime          @default(now())
+  note       String?
+  categoryId String?
+  category   Category?         @relation(fields: [categoryId], references: [id])
+  personId   String // who paid / who it belongs to
+  person     Person            @relation(fields: [personId], references: [id])
+  scope      TransactionScope  @default(personal)
+
+  // Shared-expense split info (only relevant when scope = shared)
+  splitType     SplitType? // equal | custom | byIncome
+  payerShare    Float? // fraction (0-1) of the expense the payer (personId) owes themself
+  otherShare    Float? // fraction (0-1) the other person owes
+
+  // Recurring linkage (if this transaction was generated from a template)
+  recurringTemplateId String?
+  recurringTemplate    RecurringTransaction? @relation(fields: [recurringTemplateId], references: [id])
+  isDraft              Boolean               @default(false) // draft recurring txns awaiting confirmation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([personId])
+  @@index([scope])
+  @@index([categoryId])
+}
+
+model Income {
+  id         String   @id @default(cuid())
+  personId   String
+  person     Person   @relation(fields: [personId], references: [id])
+  source     String // e.g. "Sueldo", "Freelance"
+  amount     Float
+  currency   Currency @default(ARS)
+  date       DateTime @default(now())
+  recurring  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([date])
+  @@index([personId])
+}
+
+model RecurringTransaction {
+  id          String        @id @default(cuid())
+  kind        RecurringKind @default(expense)
+  name        String // e.g. "Alquiler", "Internet"
+  amount      Float // default/estimated amount, editable on confirm
+  currency    Currency      @default(ARS)
+  dayOfMonth  Int // 1-28 recommended
+  categoryId  String?
+  category    Category?     @relation(fields: [categoryId], references: [id])
+  personId    String?
+  person      Person?       @relation(fields: [personId], references: [id])
+  scope       TransactionScope @default(shared)
+  splitType   SplitType?
+  payerShare  Float?
+  otherShare  Float?
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  generatedTransactions Transaction[]
+}
