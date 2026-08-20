@@ -44,7 +44,8 @@ Copiá `.env.example` a `.env` y completá:
 
 | Variable | Descripción |
 |---|---|
-| `DATABASE_URL` | Connection string de Postgres (Neon, Vercel Postgres, o cualquier Postgres). |
+| `DATABASE_URL` | Connection string de Postgres que usa la app en runtime. Si tu proveedor tiene *connection pooler* (Supabase, PgBouncer), va el puerto **pooled**. |
+| `DIRECT_URL` | Connection string **directa** (sin pooler) que usa Prisma para migraciones. En Neon/Postgres sin pooler, es igual a `DATABASE_URL`. |
 | `APP_PIN` | El PIN compartido para entrar a la app. |
 | `SESSION_SECRET` | Secreto random para firmar la cookie de sesión. Generalo con `openssl rand -hex 32`. |
 
@@ -123,47 +124,55 @@ El "settle-up" (quién le debe a quién) se calcula neteando, para cada gasto co
 cuánto le debe la persona que no pagó a la que pagó, y compensando las deudas cruzadas
 entre ambos.
 
-## Deploy a Vercel + Neon
+## Deploy a Vercel + Neon o Supabase
 
-1. Creá una base en [Neon](https://neon.tech) (o Vercel Postgres desde el dashboard de
-   Vercel). Copiá el connection string.
-2. Importá el repo en Vercel.
-3. En **Settings → Environment Variables** del proyecto en Vercel, cargá `DATABASE_URL`,
-   `APP_PIN` y `SESSION_SECRET` (generá este último con `openssl rand -hex 32`).
-4. Antes del primer deploy (o desde tu máquina apuntando a la base de producción), corré:
-   ```bash
-   DATABASE_URL="<tu-connection-string>" npx prisma migrate deploy
-   DATABASE_URL="<tu-connection-string>" npx prisma db seed
+### Opción A: Neon
+
+1. Creá una base en [Neon](https://neon.tech). Copiá el connection string.
+2. Usá el mismo valor para `DATABASE_URL` y `DIRECT_URL` (Neon no necesita separarlos para
+   este proyecto).
+
+### Opción B: Supabase
+
+1. Creá un proyecto en [supabase.com](https://supabase.com).
+2. En **Project Settings → Database → Connection string**, copiá:
+   - El modo **Transaction pooler** (puerto `6543`) → va en `DATABASE_URL`, agregando
+     `?pgbouncer=true` al final.
+   - El modo **Direct connection** (puerto `5432`) → va en `DIRECT_URL`.
    ```
-5. Deploy. Vercel corre `npm install` (que dispara `prisma generate` vía `postinstall`) y
+   DATABASE_URL="postgresql://postgres.xxxxx:PASSWORD@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+   DIRECT_URL="postgresql://postgres.xxxxx:PASSWORD@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+   ```
+   (Si no separás las dos, `prisma migrate deploy` falla porque el pooler no soporta los
+   prepared statements que usa Prisma para migrar.)
+
+### Deploy en sí
+
+1. Importá el repo en Vercel (rama a deployar: `finanzas-compartidas-app`, o `main` una vez
+   mergeado).
+2. En **Settings → Environment Variables** del proyecto en Vercel, cargá `DATABASE_URL`,
+   `DIRECT_URL`, `APP_PIN` y `SESSION_SECRET` (generá este último con `openssl rand -hex 32`).
+3. Antes del primer deploy (o desde tu máquina apuntando a la base de producción), corré:
+   ```bash
+   DATABASE_URL="<tu-connection-string-directa>" DIRECT_URL="<tu-connection-string-directa>" npx prisma migrate deploy
+   DATABASE_URL="<tu-connection-string-directa>" DIRECT_URL="<tu-connection-string-directa>" npm run db:seed
+   ```
+4. Deploy. Vercel corre `npm install` (que dispara `prisma generate` vía `postinstall`) y
    `npm run build` automáticamente.
 
 Para migraciones futuras: corré `npm run db:migrate` en local (contra una base de
 desarrollo) para generar el archivo de migración, commiteá `prisma/migrations/`, y en
 producción aplicalo con `npm run db:deploy` (o dejá que corra en tu pipeline de deploy).
 
-## Qué se probó y qué falta probar en runtime
+## Qué se probó
 
-Este proyecto se armó sin acceso a un Postgres real (no había `psql`/Docker disponibles en
-el entorno de build). Se verificó:
+Con Postgres local (Homebrew) y un navegador headless (Playwright) se probó de punta a
+punta: login con PIN, cambio de persona, carga de gasto personal y compartido (incluyendo
+el cálculo de `payerShare`/`otherShare` al 50/50), el dashboard (ahorro neto por persona,
+gasto en caja compartida), y las pantallas de transacciones y ajustes (cotizaciones,
+categorías, cajas). Sin errores de consola en ningún paso. También pasan `npx prisma
+validate`, `npx tsc --noEmit`, `npm run lint` y `npm run build`.
 
-- `npx prisma validate` — schema válido.
-- `npx prisma generate` — cliente generado sin errores.
-- `npx tsc --noEmit` — sin errores de tipos.
-- `npm run lint` — sin errores.
-- `npm run build` — build de producción completo y exitoso.
-- `npm run dev` + `curl` — `/login` renderiza, y las rutas protegidas redirigen
-  correctamente a `/login` cuando no hay sesión (vía `src/proxy.ts`).
-
-Lo que **no** se pudo probar sin una base de datos real (queda para hacerlo apenas se
-conecte una):
-
-- `npx prisma migrate dev` (crear las tablas de verdad).
-- `npm run db:seed` contra una base real.
-- El flujo completo de login vía Server Action (los Server Actions usan un formato de
-  request especial que no es trivial de simular con `curl`; hace falta un navegador).
-- Los flujos de alta de gasto/ingreso, generación de fijos, edición de cotizaciones, etc.
-  de punta a punta.
-
-Recomendación: conectar una base Neon gratuita, correr `db:migrate` + `db:seed`, y probar
-manualmente el flujo de carga de gastos desde el celular (es la pantalla más importante).
+Falta probar contra Neon/Supabase reales en producción (debería comportarse igual, es el
+mismo Postgres) y el flujo de "generar fijos del mes" con datos reales a lo largo de varios
+meses.
