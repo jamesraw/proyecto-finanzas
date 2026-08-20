@@ -1,4 +1,4 @@
-import { Wallet, LogOut } from "lucide-react";
+import { PawPrint, LogOut } from "lucide-react";
 import { PersonSwitcher } from "./person-switcher";
 import { getActivePerson } from "@/lib/person";
 import { logout } from "@/app/actions/auth";
@@ -10,7 +10,7 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex items-center gap-2 font-semibold">
-        <Wallet className="h-5 w-5 text-primary" />
+        <PawPrint className="h-5 w-5 text-primary" />
         <span className="hidden sm:inline">Casa &amp; Caja</span>
       </div>
       <div className="flex items-center gap-2">

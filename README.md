@@ -48,6 +48,25 @@ Copiá `.env.example` a `.env` y completá:
 | `DIRECT_URL` | Connection string **directa** (sin pooler) que usa Prisma para migraciones. En Neon/Postgres sin pooler, es igual a `DATABASE_URL`. |
 | `APP_PIN` | El PIN compartido para entrar a la app. |
 | `SESSION_SECRET` | Secreto random para firmar la cookie de sesión. Generalo con `openssl rand -hex 32`. |
+| `BLOB_READ_WRITE_TOKEN` | Opcional. Habilita adjuntar foto del comprobante al cargar un gasto. Ver sección "Comprobantes" abajo. |
+
+### Comprobantes (fotos de recibos)
+
+Al cargar un gasto se puede adjuntar opcionalmente una foto del comprobante. Se guarda en
+[Vercel Blob](https://vercel.com/docs/storage/vercel-blob) (storage de archivos, tiene free
+tier). Si `BLOB_READ_WRITE_TOKEN` no está configurado, la app simplemente omite la subida sin
+romper nada — es una funcionalidad opcional, no bloqueante.
+
+Para activarlo en producción:
+
+1. En el proyecto en Vercel → **Storage** → **Create Database** → **Blob**.
+2. Al crearlo, Vercel conecta automáticamente la variable `BLOB_READ_WRITE_TOKEN` al proyecto
+   (no hace falta cargarla a mano).
+3. Redeploy para que tome la variable nueva.
+
+Para probarlo en local, creá un Blob store igual desde el dashboard de Vercel, copiá el token
+desde **Storage → tu store → .env.local tab**, y agregalo a tu `.env` como
+`BLOB_READ_WRITE_TOKEN`.
 
 ## Puesta en marcha local
 

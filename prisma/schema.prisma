@@ -105,6 +105,8 @@ model Transaction {
   recurringTemplate    RecurringTransaction? @relation(fields: [recurringTemplateId], references: [id])
   isDraft              Boolean               @default(false) // draft recurring txns awaiting confirmation
 
+  receiptUrl String? // optional photo of the receipt, stored in Vercel Blob
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

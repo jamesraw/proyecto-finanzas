@@ -2,7 +2,7 @@ import { getMonthSummary } from "@/lib/dashboard";
 import { formatARS, formatAmount, getRatesMap, toARS } from "@/lib/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, PiggyBank, Users } from "lucide-react";
+import { ArrowRight, Paperclip, PiggyBank, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 const monthLabel = new Intl.DateTimeFormat("es-AR", {
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
         <div className="space-y-2">
           {recentTransactions.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Todavía no hay movimientos este mes.
+              🐾 Todavía no hay movimientos este mes.
             </p>
           )}
           {recentTransactions.map((tx) => (
@@ -150,6 +150,17 @@ export default async function DashboardPage() {
                       month: "2-digit",
                     }).format(tx.date)}
                     {tx.scope === "shared" ? " · Compartido" : ""}
+                    {tx.receiptUrl && (
+                      <a
+                        href={tx.receiptUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-1 inline-flex items-center text-primary"
+                        aria-label="Ver comprobante"
+                      >
+                        <Paperclip className="h-3 w-3" />
+                      </a>
+                    )}
                   </div>
                 </div>
                 <div className="shrink-0 text-right text-sm font-semibold">

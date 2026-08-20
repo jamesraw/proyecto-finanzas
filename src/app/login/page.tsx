@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Wallet } from "lucide-react";
+import { PawPrint } from "lucide-react";
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, undefined);
@@ -16,9 +16,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Wallet className="h-6 w-6" />
+            <PawPrint className="h-6 w-6" />
           </div>
-          <CardTitle className="text-xl">Finanzas de la casa</CardTitle>
+          <CardTitle className="text-xl">Casa &amp; Caja 🐾</CardTitle>
           <CardDescription>Ingresá el PIN compartido para entrar</CardDescription>
         </CardHeader>
         <CardContent>

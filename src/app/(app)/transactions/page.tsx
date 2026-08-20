@@ -4,6 +4,7 @@ import { TransactionFilters } from "@/components/forms/transaction-filters";
 import { DeleteTransactionButton } from "@/components/forms/delete-transaction-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Paperclip } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 
 export default async function TransactionsPage({
@@ -63,7 +64,7 @@ export default async function TransactionsPage({
 
       {transactions.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          No hay movimientos con estos filtros.
+          🐾 No hay movimientos con estos filtros.
         </p>
       )}
 
@@ -95,6 +96,17 @@ export default async function TransactionsPage({
                           <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
                             Compartido
                           </Badge>
+                        )}
+                        {tx.receiptUrl && (
+                          <a
+                            href={tx.receiptUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="ml-1 inline-flex items-center gap-0.5 text-primary"
+                            aria-label="Ver comprobante"
+                          >
+                            <Paperclip className="h-3 w-3" />
+                          </a>
                         )}
                       </div>
                     </div>

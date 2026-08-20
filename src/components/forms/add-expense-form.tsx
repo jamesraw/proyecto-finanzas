@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Camera, X } from "lucide-react";
 
 type Category = { id: string; name: string; icon: string; color: string };
 type Person = { id: string; name: string; color: string };
@@ -37,6 +38,7 @@ export function AddExpenseForm({
   const [splitType, setSplitType] = useState("equal");
   const [personId, setPersonId] = useState(activePersonId);
   const [customPercent, setCustomPercent] = useState(50);
+  const [receiptName, setReceiptName] = useState<string | null>(null);
 
   const otherPerson = useMemo(
     () => people.find((p) => p.id !== personId),
@@ -208,6 +210,48 @@ export function AddExpenseForm({
         <Textarea id="note" name="note" rows={1} placeholder="Ej: verdulería" />
       </div>
 
+      {/* Comprobante — optional receipt photo */}
+      <div>
+        <Label htmlFor="receipt" className="mb-1 block text-xs text-muted-foreground">
+          Comprobante (opcional)
+        </Label>
+        {receiptName ? (
+          <div className="flex items-center gap-2 rounded-xl border bg-muted/40 p-2 text-sm">
+            <Camera className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 truncate">{receiptName}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setReceiptName(null);
+                const input = document.getElementById("receipt") as HTMLInputElement | null;
+                if (input) input.value = "";
+              }}
+              className="shrink-0 text-muted-foreground"
+              aria-label="Quitar comprobante"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <label
+            htmlFor="receipt"
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed p-3 text-sm text-muted-foreground"
+          >
+            <Camera className="h-4 w-4" />
+            Sacar foto o subir imagen 🐾
+          </label>
+        )}
+        <input
+          id="receipt"
+          name="receipt"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="sr-only"
+          onChange={(e) => setReceiptName(e.target.files?.[0]?.name ?? null)}
+        />
+      </div>
+
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
       <Button
@@ -215,7 +259,7 @@ export function AddExpenseForm({
         className="h-12 w-full text-base"
         disabled={pending || !categoryId}
       >
-        {pending ? "Guardando..." : "Guardar gasto"}
+        {pending ? "Guardando... 🐾" : "Guardar gasto"}
       </Button>
     </form>
   );

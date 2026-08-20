@@ -38,6 +38,7 @@ async function main() {
     { name: "Salidas", icon: "🍻", color: "#a855f7" },
     { name: "Transporte", icon: "🚌", color: "#0ea5e9" },
     { name: "Salud", icon: "💊", color: "#ef4444" },
+    { name: "Mascotas", icon: "🐾", color: "#c1602f" },
     { name: "Ahorro", icon: "🐷", color: "#14b8a6" },
     { name: "Otros", icon: "📦", color: "#64748b" },
   ];

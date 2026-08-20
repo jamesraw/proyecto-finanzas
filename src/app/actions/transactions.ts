@@ -3,7 +3,28 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
+
+const MAX_RECEIPT_BYTES = 8 * 1024 * 1024; // 8MB, plenty for a phone photo
+
+async function uploadReceipt(file: File | null): Promise<string | null> {
+  if (!file || file.size === 0) return null;
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    // Receipts are optional — if Blob storage isn't configured (e.g. local
+    // dev without a token), just skip the upload instead of failing the
+    // whole expense.
+    return null;
+  }
+  if (file.size > MAX_RECEIPT_BYTES) {
+    throw new Error("El comprobante es muy pesado (máx. 8MB).");
+  }
+  const blob = await put(`receipts/${Date.now()}-${file.name}`, file, {
+    access: "public",
+    addRandomSuffix: true,
+  });
+  return blob.url;
+}
 
 const transactionSchema = z.object({
   amount: z.coerce.number().positive("El monto tiene que ser mayor a 0"),
@@ -93,6 +114,14 @@ export async function createTransaction(
     data.customSharePercent
   );
 
+  let receiptUrl: string | null;
+  try {
+    const receiptFile = formData.get("receipt");
+    receiptUrl = await uploadReceipt(receiptFile instanceof File ? receiptFile : null);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No se pudo subir el comprobante" };
+  }
+
   await prisma.transaction.create({
     data: {
       amount: data.amount,
@@ -105,6 +134,7 @@ export async function createTransaction(
       splitType: shares.splitType as "equal" | "custom" | "byIncome" | null,
       payerShare: shares.payerShare,
       otherShare: shares.otherShare,
+      receiptUrl,
     },
   });
 
